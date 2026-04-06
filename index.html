@@ -301,96 +301,65 @@ scalability, reduce overhead, and optimize operational throughput <I/></p>
 
 <script>
   // Blog functionality scripts
-  function openLoginModal() {
-    document.getElementById('login-modal').style.display = 'flex';
-  }
 
-  function closeLoginModal() {
-    document.getElementById('login-modal').style.display = 'none';
-    document.getElementById('admin-user').value = '';
-    document.getElementById('admin-pass').value = '';
-  }
-
-  function authenticateUser() {
-    const user = document.getElementById('admin-user').value;
-    const pass = document.getElementById('admin-pass').value;
+  async function renderMediumBlogs() {
+    // REMEMBER TO REPLACE THIS WITH YOUR ACTUAL MEDIUM USERNAME
+    const mediumUsername = "@cssagnik"; 
     
-    // Default hardcoded credentials for demonstration
-    // Update these to your preferred username and password
-    if (user === "admin" && pass === "admin") {
-      closeLoginModal();
-      document.getElementById('blog-editor-section').style.display = 'block';
-      window.location.hash = "blog-editor-section";
-    } else {
-      alert("Incorrect User ID or Password.");
+    const rssUrl = `https://medium.com/feed/${mediumUsername}`;
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+    const container = document.getElementById("blog-display-area");
+
+    container.innerHTML = "<p style=\"color:#0B1957; text-align:center; width:100%;\">Loading Beyond Story articles...</p>";
+
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      container.innerHTML = ""; 
+
+      if (data.status !== "ok" || data.items.length === 0) {
+        container.innerHTML = "<p style=\"color:#0B1957; text-align:center; width:100%; grid-column: span 2;\">No stories published yet. Check back soon!</p>";
+        return;
+      }
+
+      data.items.forEach(item => {
+        const blogElement = document.createElement("div");
+        blogElement.style.backgroundColor = "#f3ede5";
+        blogElement.style.padding = "20px";
+        blogElement.style.borderRadius = "15px";
+        blogElement.style.border = "1px solid #c7bda7";
+        blogElement.style.boxShadow = "0 2px 4px rgba(11,25,87,0.1)";
+        
+        const rawDate = new Date(item.pubDate);
+        const formattedDate = rawDate.toLocaleDateString();
+
+        // 1. Strip out HTML tags and images from Medium
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = item.description;
+        const pureText = tempDiv.textContent || tempDiv.innerText || "";
+
+        blogElement.innerHTML = `
+          <p style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">${formattedDate}</p>
+          <h4 class="text-xl font-bold mb-3" style="color:#0B1957;">${item.title}</h4>
+          
+          <p style="color:#333; line-height: 1.6; margin-bottom: 15px; font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+            ${pureText}
+          </p>
+          
+          <a href="${item.link}" target="_blank" style="display: inline-block; background-color: #0B1957; color: #E6D8C7; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: bold;">Read Full Story</a>
+        `;
+        container.appendChild(blogElement);
+      });
+
+    } catch (error) {
+      console.error("Error fetching Medium blogs:", error);
+      container.innerHTML = "<p style=\"color:red; text-align:center; width:100%;\">Failed to load stories. Please try again later.</p>";
     }
   }
 
-  function closeEditor() {
-    document.getElementById('blog-editor-section').style.display = 'none';
-  }
-
-  function publishBlog() {
-    const title = document.getElementById('new-blog-title').value;
-    const content = document.getElementById('new-blog-content').value;
-
-    if (title.trim() === "" || content.trim() === "") {
-      alert("Please fill in both the title and content.");
-      return;
-    }
-
-    const blogPost = {
-      title: title,
-      content: content,
-      date: new Date().toLocaleDateString()
-    };
-
-    let blogs = JSON.parse(localStorage.getItem('beyondStoryBlogs')) || [];
-    blogs.unshift(blogPost); // Add to the top of the array
-    localStorage.setItem('beyondStoryBlogs', JSON.stringify(blogs));
-
-    document.getElementById('new-blog-title').value = '';
-    document.getElementById('new-blog-content').value = '';
-    
-    alert("Blog published successfully!");
-    renderBlogs();
-  }
-
-  function renderBlogs() {
-    const container = document.getElementById('blog-display-area');
-    const blogs = JSON.parse(localStorage.getItem('beyondStoryBlogs')) || [];
-    
-    container.innerHTML = '';
-    
-    if (blogs.length === 0) {
-      container.innerHTML = '<p style="color:#0B1957; text-align:center; width:100%; grid-column: span 2;">No stories published yet. Login to write the first post.</p>';
-      return;
-    }
-
-    blogs.forEach(blog => {
-      const blogElement = document.createElement('div');
-      blogElement.style.backgroundColor = '#f3ede5';
-      blogElement.style.padding = '20px';
-      blogElement.style.borderRadius = '15px';
-      blogElement.style.border = '1px solid #c7bda7';
-      blogElement.style.boxShadow = '0 2px 4px rgba(11,25,87,0.1)';
-      
-      // Formatting the text block to prevent code injection and format line breaks
-      const safeContent = blog.content.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-      const safeTitle = blog.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-      blogElement.innerHTML = `
-        <p style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">${blog.date}</p>
-        <h4 class="text-xl font-bold mb-3" style="color:#0B1957;">${safeTitle}</h4>
-        <p style="color:#333; line-height: 1.6;">${safeContent}</p>
-      `;
-      container.appendChild(blogElement);
-    });
-  }
-
-  // Load blogs when the page opens
   window.onload = function() {
-    renderBlogs();
+    renderMediumBlogs();
   };
 </script>
 <footer style="display: inline-block; background-color:#E6D8C7; color:#0B1957; width: 100%; padding: 20px 0;">
